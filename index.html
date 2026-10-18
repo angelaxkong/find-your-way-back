@@ -52,11 +52,11 @@
   <button class="hit prev" id="prev" aria-label="Previous slide"></button>
   <button class="hit next" id="next" aria-label="Next slide"></button>
 </div>
-<div class="bar"><div class="dots" id="dots"></div><div class="count" id="count">1 / 15</div></div>
-
+<div class="bar"><button class="music" id="music" aria-label="Play music" aria-pressed="false">♪</button><div class="dots" id="dots"></div><div class="count" id="count">1 / 15</div></div>
+<audio id="song" src="song.mp3" loop preload="auto"></audio>
 
 <script>
-  const V = "4"; // bump after any slide change so phones don't show old cached slides
+  const V = "5"; // bump after any slide change so phones don't show old cached slides
   const N = 15, stage = document.getElementById("stage"), dots = document.getElementById("dots"), count = document.getElementById("count");
   const imgs = [];
   for (let i = 1; i <= N; i++) {
@@ -79,6 +79,15 @@
   document.getElementById("prev").onclick = () => show(k - 1);
   document.getElementById("next").onclick = () => show(k + 1);
   addEventListener("keydown", (e) => { if (e.key === "ArrowRight") show(k + 1); if (e.key === "ArrowLeft") show(k - 1); });
+  // music: starts on the first tap anywhere (browsers block sound before that); ♪ toggles it
+  const song = document.getElementById("song"), btn = document.getElementById("music");
+  song.volume = 0.7;
+  let started = false, muted = false;
+  const sync = () => { btn.setAttribute("aria-pressed", String(!song.paused)); btn.setAttribute("aria-label", song.paused ? "Play music" : "Pause music"); };
+  const play = () => song.play().then(sync).catch(sync);
+  btn.onclick = (e) => { e.stopPropagation(); started = true; if (song.paused) { muted = false; play(); } else { muted = true; song.pause(); sync(); } };
+  addEventListener("pointerdown", (e) => { if (e.target === btn) return; if (!started && !muted) { started = true; play(); } }, { capture: true });
+  addEventListener("keydown", () => { if (!started && !muted) { started = true; play(); } }, { capture: true });
   let x0 = null;
   stage.addEventListener("touchstart", (e) => { x0 = e.touches[0].clientX; }, { passive: true });
   stage.addEventListener("touchend", (e) => { if (x0 === null) return; const dx = e.changedTouches[0].clientX - x0; if (Math.abs(dx) > 40) show(k + (dx < 0 ? 1 : -1)); x0 = null; });
